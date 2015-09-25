@@ -38,6 +38,6 @@ You could import it with this command:
         }'
 
 ## Notes
-	- CSV must have headers
-	- localhost:9200 assumed
+- CSV must have headers
+- localhost:9200 assumed
 
