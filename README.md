@@ -27,15 +27,26 @@ If your CSV looks like:
 |   1  |  Mike  |   Engineering    |
 |   2  |  Erin  | Computer Science |
 
-You could import it with this command:
+Import with:
 
     $ python csv_to_elastic.py \
         --csv-file input.csv \
-        --elastic-path '<index>/<type>/%id%' \
+        --elastic-path 'people/students/%id%' \
         --json-struct '{
             "name" : "%name%",
             "major" : "%major%"
         }'
+
+Is equivalent to:
+
+    $ curl -XPUT http://localhost/people/students/1 -d '{
+        "name" : "Mike",
+        "major" : Engineering"
+    }'
+    $ curl -XPUT http://localhost/people/students/2 -d '{
+        "name" : "Erin",
+        "major" : Computer Science"
+    }'
 
 ## Notes
 - CSV must have headers
