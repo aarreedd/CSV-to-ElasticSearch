@@ -1,6 +1,6 @@
 # Simple CSV to ElasticSearch Importer
 
-csv_to_elastic.py simplifies importing a csv file into ElasticSearch without the need to ElasticSearch plugins or Logstash.
+csv_to_elastic.py simplifies importing a csv file into ElasticSearch without the need for ElasticSearch plugins or Logstash.
 
 ## How it Works
 
@@ -31,7 +31,7 @@ Import with:
 
     $ python csv_to_elastic.py \
         --csv-file input.csv \
-        --elastic-path 'people/students/%id%' \
+        --elastic-path 'people/student/%id%' \
         --json-struct '{
             "name" : "%name%",
             "major" : "%major%"
@@ -39,11 +39,11 @@ Import with:
 
 Is equivalent to:
 
-    $ curl -XPUT http://localhost/people/students/1 -d '{
+    $ curl -XPUT http://localhost/people/student/1 -d '{
         "name" : "Mike",
         "major" : Engineering"
     }'
-    $ curl -XPUT http://localhost/people/students/2 -d '{
+    $ curl -XPUT http://localhost/people/student/2 -d '{
         "name" : "Erin",
         "major" : Computer Science"
     }'
@@ -51,4 +51,3 @@ Is equivalent to:
 ## Notes
 - CSV must have headers
 - localhost:9200 assumed
-
