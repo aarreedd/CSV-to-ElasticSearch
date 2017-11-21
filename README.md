@@ -30,8 +30,10 @@ If your CSV looks like:
 Import with:
 
     $ python csv_to_elastic.py \
+        --elastic-address 'localhost:9200' \
         --csv-file input.csv \
-        --elastic-path 'people/student/%id%' \
+        --elastic-index 'index' \
+        --datetime-field=dateField \
         --json-struct '{
             "name" : "%name%",
             "major" : "%major%"
@@ -49,5 +51,6 @@ Is equivalent to:
     }'
 
 ## Notes
-- CSV must have headers
-- localhost:9200 assumed
+    - CSV must have headers
+    - insert elastic address (with port) as argument, it defaults to localhost:9200
+    - Bulk insert method is used, because inserting row by row is unbelievably slow
