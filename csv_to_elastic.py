@@ -2,7 +2,8 @@
 
 """
 DESCRIPTION
-    Simple python script to import a csv into ElasticSearch.
+    Simple python script to import a csv into ElasticSearch. It can also update existing Elastic data if
+    only parameter --id-column is provided
 
 HOW IT WORKS
     The script creates an ElasticSearch API PUT request for
@@ -21,6 +22,7 @@ NOTES
     - insert elastic address (with port) as argument, it defaults to localhost:9200
 
 EXAMPLES
+    1. CREATE example:
 
     $ python csv_to_elastic.py \
         --elastic-address 'localhost:9200' \
@@ -31,6 +33,27 @@ EXAMPLES
             "name" : "%name%",
             "major" : "%major%"
         }'
+
+    CSV:
+
+|  name  |      major       |
+|--------|------------------|
+|  Mike  |   Engineering    |
+|  Erin  | Computer Science |
+
+
+    2. CREATE/UPDATE example:
+
+    $ python csv_to_elastic.py \
+        --elastic-address 'localhost:9200' \
+        --csv-file input.csv \
+        --elastic-index 'index' \
+        --datetime-field=dateField \
+        --json-struct '{
+            "name" : "%name%",
+            "major" : "%major%"
+        }'
+        --id-column id
 CSV:
 
 |  id  |  name  |      major       |
@@ -48,7 +71,7 @@ import json
 import dateutil.parser
 
 
-def main(file_path, max_rows, elastic_index, json_struct, datetime_field, elastic_type, elastic_address):
+def main(file_path, max_rows, elastic_index, json_struct, datetime_field, elastic_type, elastic_address, id_column):
     endpoint = '/_bulk'
 
     print("")
@@ -58,13 +81,15 @@ def main(file_path, max_rows, elastic_index, json_struct, datetime_field, elasti
 
     count = 0
     headers = []
+    headers_position = {}
     to_elastic_string = ""
     with open(file_path, 'r') as csvfile:
         reader = csv.reader(csvfile, delimiter=';', quotechar='"')
         for row in reader:
             if count == 0:
-                for col in row:
+                for iterator, col in enumerate(row):
                     headers.append(col)
+                    headers_position[col] = iterator
             elif max_rows is not None and count >= max_rows:
                 print('Max rows imported - exit')
                 break
@@ -89,7 +114,12 @@ def main(file_path, max_rows, elastic_index, json_struct, datetime_field, elasti
                             _data = _data.replace('%' + header + '%', row[pos])
                     pos += 1
                 # Send the request
-                index_row = {"index": {"_index": elastic_index, "_type": elastic_type}}
+                if id_column is not None:
+                    index_row = {"index": {"_index": elastic_index,
+                                           "_type": elastic_type,
+                                           '_id': row[headers_position[id_column]]}}
+                else:
+                    index_row = {"index": {"_index": elastic_index, "_type": elastic_type}}
                 json_string = json.dumps(index_row) + "\n" + _data + "\n"
                 to_elastic_string += json_string
             count += 1
@@ -136,10 +166,14 @@ if __name__ == '__main__':
     parser.add_argument('--datetime-field',
                         type=str,
                         help='datetime field for elastic')
+    parser.add_argument('--id-column',
+                        type=str,
+                        default=None,
+                        help='If you want to have index and you have it in csv, this the argument to point to it')
 
     parsed_args = parser.parse_args()
 
     main(file_path=parsed_args.csv_file, json_struct=parsed_args.json_struct,
          elastic_index=parsed_args.elastic_index, elastic_type=parsed_args.elastic_type,
          datetime_field=parsed_args.datetime_field, max_rows=parsed_args.max_rows,
-         elastic_address=parsed_args.elastic_address)
+         elastic_address=parsed_args.elastic_address, id_column=parsed_args.id_column)
