@@ -71,7 +71,7 @@ import json
 import dateutil.parser
 
 
-def main(file_path, max_rows, elastic_index, json_struct, datetime_field, elastic_type, elastic_address, id_column):
+def main(file_path, delimiter, max_rows, elastic_index, json_struct, datetime_field, elastic_type, elastic_address, id_column):
     endpoint = '/_bulk'
 
     print("")
@@ -84,7 +84,7 @@ def main(file_path, max_rows, elastic_index, json_struct, datetime_field, elasti
     headers_position = {}
     to_elastic_string = ""
     with open(file_path, 'r') as csvfile:
-        reader = csv.reader(csvfile, delimiter=';', quotechar='"')
+        reader = csv.reader(csvfile, delimiter=delimiter, quotechar='"')
         for row in reader:
             if count == 0:
                 for iterator, col in enumerate(row):
@@ -102,6 +102,7 @@ def main(file_path, max_rows, elastic_index, json_struct, datetime_field, elasti
                     _data = json_struct.replace("^", '"')
                 else:
                     _data = json_struct.replace("'", '"')
+                _data = _data.replace('\n','').replace('\r','')
                 for header in headers:
                     if header == datetime_field:
                         datetime_type = dateutil.parser.parse(row[pos])
@@ -127,10 +128,12 @@ def main(file_path, max_rows, elastic_index, json_struct, datetime_field, elasti
     print('Reached end of CSV - sending to Elastic')
 
     connection = http.client.HTTPConnection(elastic_address)
-    connection.request('POST', url=endpoint, body=to_elastic_string)
+    headers = {"Content-type": "application/json", "Accept": "text/plain"}
+    connection.request('POST', url=endpoint, headers = headers, body=to_elastic_string)
     response = connection.getresponse()
     print("Returned status code:", response.status)
-    # body = response.read()
+    #body = response.read()
+    #print("Returned body:", body)
     return
 
 
@@ -170,10 +173,14 @@ if __name__ == '__main__':
                         type=str,
                         default=None,
                         help='If you want to have index and you have it in csv, this the argument to point to it')
+    parser.add_argument('--delimiter',
+                        type=str,
+                        default=";",
+                        help='If you want to have a different delimiter than ;')
 
     parsed_args = parser.parse_args()
 
-    main(file_path=parsed_args.csv_file, json_struct=parsed_args.json_struct,
+    main(file_path=parsed_args.csv_file, delimiter = parsed_args.delimiter, json_struct=parsed_args.json_struct,
          elastic_index=parsed_args.elastic_index, elastic_type=parsed_args.elastic_type,
          datetime_field=parsed_args.datetime_field, max_rows=parsed_args.max_rows,
          elastic_address=parsed_args.elastic_address, id_column=parsed_args.id_column)
