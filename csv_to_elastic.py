@@ -73,10 +73,14 @@ import dateutil.parser
 
 def main(file_path, delimiter, max_rows, elastic_index, json_struct, datetime_field, elastic_type, elastic_address, id_column):
     endpoint = '/_bulk'
+    if max_rows is None:
+      max_rows_disp = "all"
+    else:
+      max_rows_disp = max_rows
 
     print("")
     print(" ----- CSV to ElasticSearch ----- ")
-    print("Importing %s rows into `%s` from '%s'" % (max_rows, elastic_index, file_path))
+    print("Importing %s rows into `%s` from '%s'" % (max_rows_disp, elastic_index, file_path))
     print("")
 
     count = 0
