@@ -19,6 +19,8 @@ insert your CSV data by replacing the column name wrapped in '%'
 tags with the data for the given row. For example, `%id%` will be 
 replaced with data from the `id` column of your CSV.
 
+This script requires Python 3 with the python-dateutils and http modules to be installed (pip3 install python-dateutils http)
+
 ## EXAMPLES
     1. CREATE example:
 
@@ -32,7 +34,7 @@ replaced with data from the `id` column of your CSV.
             "major" : "%major%"
         }'
 
-    CSV:
+CSV:
 
 |  name  |      major       |
 |--------|------------------|
@@ -58,6 +60,32 @@ CSV:
 |------|--------|------------------|
 |   1  |  Mike  |   Engineering    |
 |   2  |  Erin  | Computer Science |
+
+## Flags
+Required:
+```
+--csv-file CSV_FILE
+  Name of csv file to read
+--json-struct JSON_STRUCT
+  JSON structure (See example above)
+--elastic-index ELASTIC_INDEX
+  Elasticsearch index name
+```
+  Optional:
+  ```
+  --elastic-address ELASTIC_ADDRESS
+    Address of Elasticsearch server
+  --elastic-type ELASTIC_TYPE
+    Elasticsearch type name (Now deprecated in Elasticsearch)
+  --max-rows MAX_ROWS
+    Maxmimum number of rows to read from csv file
+  --datetime-field DATETIME_FIELD
+    ???
+  --id-column ID_COLUMN
+    ???
+  --delimiter DELIMITER
+    Delimiter to use in csv file (default is ';')
+```
 
 ## Notes
     - CSV must have headers
