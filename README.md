@@ -74,15 +74,15 @@ Required:
   Optional:
   ```
   --elastic-address ELASTIC_ADDRESS
-    Address of Elasticsearch server
+    Address of Elasticsearch server (Default: localhost:9200)
   --elastic-type ELASTIC_TYPE
     Elasticsearch type name (Now deprecated in Elasticsearch)
   --max-rows MAX_ROWS
     Maxmimum number of rows to read from csv file
   --datetime-field DATETIME_FIELD
-    ???
+    Indicate that a field is a datetime. That way it will be parsed and incerted correctly.
   --id-column ID_COLUMN
-    ???
+    Specify row ID column. Used for updating data. 
   --delimiter DELIMITER
     Delimiter to use in csv file (default is ';')
 ```
