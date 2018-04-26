@@ -129,8 +129,16 @@ def main(file_path, delimiter, max_rows, elastic_index, json_struct, datetime_fi
                 json_string = json.dumps(index_row) + "\n" + _data + "\n"
                 to_elastic_string += json_string
             count += 1
+            if count % 10000 == 0:
+                send_to_elastic(elastic_address, endpoint, ssl, username, password, to_elastic_string, count)
+                to_elastic_string = ""
 
     print('Reached end of CSV - sending to Elastic')
+    send_to_elastic(elastic_address, endpoint, ssl, username, password, to_elastic_string, count)
+
+    print("Done.")
+
+def send_to_elastic(elastic_address, endpoint, ssl, username, password, to_elastic_string, block=0):
 
     if ssl:
         print("Using HTTPS")
@@ -150,6 +158,8 @@ def main(file_path, delimiter, max_rows, elastic_index, json_struct, datetime_fi
 
     connection.request('POST', url=endpoint, headers = headers, body=to_elastic_string)
     response = connection.getresponse()
+    body = response.read().decode('utf-8')
+    response_details=json.loads(body)
 
     if response.status != 200:
         print ("\n*** Error occured before import. ***")
@@ -157,10 +167,12 @@ def main(file_path, delimiter, max_rows, elastic_index, json_struct, datetime_fi
 
     else:
 
-        body = response.read().decode('utf-8')
-        response_details=json.loads(body)
         if response_details['errors']:
-            print (body)
+            line=1 # skip header 
+            for i in response_details['items']:
+                line=line+1
+                if i['index']['status'] != 201:
+                    print("\n*** Problem on line {}: {}".format(block+line,i['index']['error']))
             print ("\n*** Error occured during import. See response body above. ***\n")
         else:
             print ("Import of {} items was successful.".format(len(response_details['items'])))
