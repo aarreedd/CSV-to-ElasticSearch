@@ -69,9 +69,10 @@ import os
 import csv
 import json
 import dateutil.parser
+from base64 import b64encode
 
 
-def main(file_path, delimiter, max_rows, elastic_index, json_struct, datetime_field, elastic_type, elastic_address, id_column):
+def main(file_path, delimiter, max_rows, elastic_index, json_struct, datetime_field, elastic_type, elastic_address, ssl, username, password, id_column):
     endpoint = '/_bulk'
     if max_rows is None:
       max_rows_disp = "all"
@@ -128,17 +129,54 @@ def main(file_path, delimiter, max_rows, elastic_index, json_struct, datetime_fi
                 json_string = json.dumps(index_row) + "\n" + _data + "\n"
                 to_elastic_string += json_string
             count += 1
+            if count % 10000 == 0:
+                send_to_elastic(elastic_address, endpoint, ssl, username, password, to_elastic_string, count)
+                to_elastic_string = ""
 
     print('Reached end of CSV - sending to Elastic')
+    send_to_elastic(elastic_address, endpoint, ssl, username, password, to_elastic_string, count)
 
-    connection = http.client.HTTPConnection(elastic_address)
+    print("Done.")
+
+def send_to_elastic(elastic_address, endpoint, ssl, username, password, to_elastic_string, block=0):
+
+    if ssl:
+        print("Using HTTPS")
+        connection = http.client.HTTPSConnection(elastic_address)
+    else:
+        print("Using unencrypted http")
+        connection = http.client.HTTPConnection(elastic_address)
+
     headers = {"Content-type": "application/json", "Accept": "text/plain"}
+
+    if not username is None:
+        auth = b64encode(bytes("{}:{}".format(username,password), "utf-8")).decode("ascii")
+        if ssl or "localhost" in elastic_address:
+            headers['Authorization'] = "Basic {}".format(auth)
+        else:
+            print("*** Warning: Refusing to remotely transmit user/pass unencrypted.")
+
     connection.request('POST', url=endpoint, headers = headers, body=to_elastic_string)
     response = connection.getresponse()
-    print("Returned status code:", response.status)
-    #body = response.read()
-    #print("Returned body:", body)
-    return
+    body = response.read().decode('utf-8')
+    response_details=json.loads(body)
+
+    if response.status != 200:
+        print ("\n*** Error occured before import. ***")
+        print ("HTTP error code {} / {}".format(response.status, response.reason))
+
+    else:
+
+        if response_details['errors']:
+            line=1 # skip header 
+            for i in response_details['items']:
+                line=line+1
+                if i['index']['status'] != 201:
+                    print("\n*** Problem on line {}: {}".format(block+line,i['index']['error']))
+            print ("\n*** Error occured during import. See response body above. ***\n")
+        else:
+            print ("Import of {} items was successful.".format(len(response_details['items'])))
+        return
 
 
 if __name__ == '__main__':
@@ -149,6 +187,19 @@ if __name__ == '__main__':
                         type=str,
                         default='localhost:9200',
                         help='Your elasticsearch endpoint address')
+    parser.add_argument('--ssl',
+                        dest='ssl',
+                        action='store_true',
+                        required=False,
+                        help='Use SSL connection')
+    parser.add_argument('--username',
+                        required=False,
+                        type=str,
+                        help='Username for basic auth (for example with elastic cloud)')
+    parser.add_argument('--password',
+                        required=False,
+                        type=str,
+                        help='Password')
     parser.add_argument('--csv-file',
                         required=True,
                         type=str,
@@ -187,4 +238,4 @@ if __name__ == '__main__':
     main(file_path=parsed_args.csv_file, delimiter = parsed_args.delimiter, json_struct=parsed_args.json_struct,
          elastic_index=parsed_args.elastic_index, elastic_type=parsed_args.elastic_type,
          datetime_field=parsed_args.datetime_field, max_rows=parsed_args.max_rows,
-         elastic_address=parsed_args.elastic_address, id_column=parsed_args.id_column)
+         elastic_address=parsed_args.elastic_address, ssl=parsed_args.ssl, username=parsed_args.username, password=parsed_args.password, id_column=parsed_args.id_column)
